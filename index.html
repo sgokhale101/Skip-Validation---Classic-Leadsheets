@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Simplified leadsheets — Export to GoSystem Tax RS</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:#e8edf2;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px}
+.win{background:#fff;border:1px solid #b0bec5;border-radius:6px;width:1060px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.15)}
+.win-bar{background:#1e3a5f;padding:7px 12px;display:flex;align-items:center;justify-content:space-between}
+.win-title{color:#fff;font-size:13px;font-weight:500;display:flex;align-items:center;gap:7px}
+.win-dot{width:10px;height:10px;border-radius:50%;background:#4ade80}
+.win-close{color:rgba(255,255,255,.6);font-size:16px;cursor:pointer;background:none;border:none;font-family:inherit}
+.err-banner{background:#fdecea;border-bottom:1px solid #f5c6c4;padding:8px 14px;display:flex;align-items:flex-start;gap:9px}
+.err-icon{width:20px;height:20px;border-radius:50%;background:#c0392b;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;margin-top:1px}
+.err-text{font-size:12px;color:#7b1e1a;line-height:1.55}
+.sub-msg{padding:8px 14px;font-size:12px;color:#444;line-height:1.6;border-bottom:1px solid #e8edf2}
+.err-count{padding:7px 14px 5px;font-size:13px;font-weight:500;color:#1a1a1a}
+
+/* table */
+.tbl-container{overflow-x:auto;max-height:300px;overflow-y:auto;position:relative}
+table{border-collapse:collapse;font-size:11.5px;width:max-content;min-width:100%}
+
+/* frozen first column */
+th:first-child,td:first-child{
+  position:sticky;left:0;z-index:2;
+  background:#fff;
+  box-shadow:2px 0 5px rgba(0,0,0,.07);
+}
+thead th:first-child{z-index:3;background:#fff8e1;}
+td:first-child::after,th:first-child::after{
+  content:'';position:absolute;top:0;right:0;
+  width:1.5px;height:100%;background:#e67e00;opacity:.4;
+}
+
+th{background:#f0f2f5;color:#666;font-weight:500;padding:6px 10px;text-align:left;border-bottom:1px solid #dde3ea;white-space:nowrap;font-size:11px;position:sticky;top:0;z-index:1}
+td{padding:5px 10px;border-bottom:0.5px solid #eef0f3;vertical-align:middle;color:#555}
+
+/* skip column header */
+.th-skip{background:#fff8e1;color:#7a4f00;width:96px;min-width:96px}
+.skip-all-wrap{display:flex;flex-direction:column;align-items:center;gap:3px}
+.skip-all-lbl{font-size:10.5px;font-weight:500;color:#7a4f00;white-space:nowrap}
+.skip-all-chk{display:flex;align-items:center;gap:4px;font-size:10.5px;color:#7a4f00;cursor:pointer;background:#fff3cd;border:0.5px solid #FAC775;border-radius:4px;padding:2px 7px}
+.skip-all-chk input{accent-color:#e67e00;width:13px;height:13px;cursor:pointer}
+
+/* skip data cell */
+.skip-cell{text-align:center}
+.skip-cell input{accent-color:#e67e00;width:14px;height:14px;cursor:pointer;vertical-align:middle}
+.skip-cell input:disabled{opacity:.35;cursor:not-allowed}
+.skip-badge{display:block;padding:1px 6px;border-radius:6px;font-size:10px;font-weight:500;background:#fff3cd;color:#856404;margin-top:2px;white-space:nowrap;text-align:center}
+.saved-badge-sm{display:block;padding:1px 6px;border-radius:6px;font-size:9.5px;font-weight:500;background:#d4edda;color:#155724;margin-top:2px;white-space:nowrap;text-align:center}
+
+/* row states */
+tr.row-skipped td{background:#fff8e1}
+tr.row-skipped td:first-child{background:#fff3cd}
+tr.row-saved td{background:#f4fbf0}
+tr.row-saved td:first-child{background:#e8f5ee}
+
+.err-detail{color:#c0392b;font-size:11px;line-height:1.4}
+.ok-detail{color:#3B6D11;font-size:11px}
+.editable-inp{width:100%;padding:2px 5px;font-size:11px;border:1px solid #4a90d9;border-radius:3px;background:#eaf4ff;color:#0c447c;outline:none;font-family:inherit}
+.editable-inp:focus{border-color:#1e3a5f;background:#dceeff}
+select.editable-inp{cursor:pointer}
+.edit-hint{font-size:10px;color:#4a90d9;margin-top:1px}
+.dis-val{color:#aaa;font-style:italic}
+.saved-pill{display:inline-block;padding:1px 6px;border-radius:6px;font-size:10px;font-weight:500;background:#d4edda;color:#155724}
+.qualify-pill{display:inline-block;padding:1px 6px;border-radius:6px;font-size:10px;font-weight:500;background:#cce5ff;color:#004085;margin-left:3px}
+
+.ack-box{padding:8px 14px;background:#fff8e1;border-top:1px solid #f9e4a0}
+.ack-title{font-size:12px;font-weight:500;color:#7a4f00;margin-bottom:4px}
+.ack-body{font-size:11.5px;color:#854f0b;line-height:1.55;margin-bottom:5px}
+.ack-confirm{display:flex;align-items:flex-start;gap:6px;font-size:12px;color:#333}
+.ack-confirm input{accent-color:#e67e00;margin-top:2px;cursor:pointer;width:13px;height:13px}
+.warn-note{padding:5px 14px;font-size:11.5px;color:#c0392b;font-style:italic}
+.export-running{padding:5px 14px;font-size:11.5px;color:#e67e00;background:#fff8e1;border-top:1px solid #f9e4a0;border-bottom:1px solid #f9e4a0}
+.status-bar{padding:5px 14px;font-size:11.5px;background:#f0faf4;border-top:1px solid #b7dfca;color:#155724;display:none}
+
+/* button bar — Save + Excel LEFT · Retry + Close RIGHT */
+.btn-row{padding:8px 14px;border-top:1px solid #e0e0e0;display:flex;gap:8px;align-items:center;background:#f8f9fa}
+.btn-row-left{display:flex;gap:8px;flex:1}
+.btn-row-right{display:flex;gap:8px}
+button{padding:5px 14px;border-radius:4px;font-size:12px;cursor:pointer;border:0.5px solid #ccc;background:#fff;color:#333;font-family:inherit}
+button:hover{background:#f0f0f0}
+.btn-p{background:#1e3a5f;color:#fff;border-color:#1e3a5f}
+.btn-p:hover{background:#162d4a}
+.btn-save{background:#1e7b45;color:#fff;border-color:#1e7b45}
+.btn-save:hover{background:#175e35}
+.btn-xl{background:#155724;color:#fff;border-color:#155724;font-size:11.5px}
+.note-bar{padding:5px 14px;font-size:11px;color:#888;background:#f8f9fa;border-top:1px solid #e0e0e0}
+.type-tag{display:inline-block;background:#EEEDFE;color:#26215C;font-size:10.5px;font-weight:500;padding:2px 8px;border-radius:10px;margin-left:6px}
+</style>
+</head>
+<body>
+<div class="win">
+  <div class="win-bar">
+    <div class="win-title">
+      <span class="win-dot"></span>
+      SPbinder — Export to GoSystem Tax RS
+      <span class="type-tag">Simplified leadsheets</span>
+    </div>
+    <button class="win-close" aria-label="Close">&#x2715;</button>
+  </div>
+
+  <div class="err-banner">
+    <div class="err-icon">&#x2715;</div>
+    <div class="err-text"><strong>GoSystem cannot accept the entered value</strong> because it's invalid or not in the correct format. Edit the field values directly in the table below, save your changes, then retry the export.</div>
+  </div>
+
+  <div class="sub-msg">Edit field values directly below. Click <strong>Save</strong> to confirm corrections — saved fields qualify for export and their Skip checkbox is disabled. Click <strong>Retry export</strong> when ready.</div>
+
+  <div class="err-count" id="countLabel">Validation errors (6)</div>
+
+  <div class="tbl-container">
+    <table>
+      <thead>
+        <tr>
+          <th class="th-skip">
+            <div class="skip-all-wrap">
+              <span class="skip-all-lbl">Skip field</span>
+              <label class="skip-all-chk">
+                <input type="checkbox" id="skipAllChk" onchange="skipAll(this.checked)">
+                Skip all
+              </label>
+            </div>
+          </th>
+          <th>Category</th>
+          <th>Form name</th>
+          <th>Field group name</th>
+          <th>Field name</th>
+          <th>Field value (editable)</th>
+          <th>Error details</th>
+          <th style="background:#FFF9E6;color:#633806">Expected sample value ★</th>
+          <th>Tax software path</th>
+          <th>Input form path</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+
+  <div id="ackBox" style="display:none">
+    <div class="ack-box">
+      <div class="ack-title">&#9888; Acknowledgment required</div>
+      <div class="ack-body">Skipped fields will NOT be exported to GoSystem Tax RS in this run. Saved fields are not affected — only fields explicitly marked as skip will be excluded.</div>
+      <div class="ack-confirm">
+        <input type="checkbox" id="ackChk">
+        <label for="ackChk">I understand — skipped fields will not appear in the tax software until fixed and re-exported.</label>
+      </div>
+    </div>
+  </div>
+
+  <div id="statusBar" class="status-bar"></div>
+  <div class="warn-note">The return in GoSystem Tax RS should be closed before you click Retry export.</div>
+  <div class="export-running">Export process is already running.</div>
+
+  <div class="btn-row">
+    <div class="btn-row-left">
+      <button class="btn-save" onclick="saveEdits()">&#x2713; Save</button>
+      <button class="btn-xl">&#x1F4C4; Export to Excel</button>
+    </div>
+    <div class="btn-row-right">
+      <button class="btn-p">Retry export</button>
+      <button>Close</button>
+    </div>
+  </div>
+  <div class="note-bar">Note: An email notification will be sent to you when the export is complete.</div>
+</div>
+
+<script>
+const rows=[
+  {cat:"W-2",form:"w2",grp:"General information",field:"Employer's name",val:'w2"',err:"Invalid value. Remove quotation marks.",sample:"e.g. w2",taxPath:"Organizer → Source docs → W-2 → W-2",inputPath:"Income → Wages and W-2",type:"text"},
+  {cat:"W-2",form:"w2",grp:"Box #A-C: Payer's information",field:"Address",val:'tGGo"',err:"Invalid value. Remove quotation marks.",sample:"e.g. 123 Main Street",taxPath:"Organizer → Source docs → W-2 → W-2",inputPath:"Income → Wages and W-2",type:"text"},
+  {cat:"Foreign financial assets",form:"",grp:"General information",field:"State",val:"",err:"Invalid dropdown. Select a valid option.",sample:"e.g. CA, NY, TX",taxPath:"Organizer → Foreign info → FinCEN 114",inputPath:"Foreign info → Financial assets",type:"select"},
+  {cat:"W-2",form:"w2",grp:"Box #A-C: Payer's information",field:"Address line 2",val:'hsj"',err:"Invalid value. Remove quotation marks.",sample:"e.g. Suite 100",taxPath:"Organizer → Source docs → W-2 → W-2",inputPath:"Income → Wages and W-2",type:"text"},
+  {cat:"W-2",form:"w2",grp:"Box #A-C: Payer's information",field:"City",val:'abc-city"',err:"Invalid value. Remove quotation marks.",sample:"e.g. San Francisco",taxPath:"Organizer → Source docs → W-2 → W-2",inputPath:"Income → Wages and W-2",type:"text"},
+  {cat:"W-2",form:"w2",grp:"Box #A-C: Payer's information",field:"ZIP code",val:'123"',err:"Invalid value. Remove quotation marks.",sample:"e.g. 94105",taxPath:"Organizer → Source docs → W-2 → W-2",inputPath:"Income → Wages and W-2",type:"text"},
+];
+let skipped={},saved={},edited={};
+let currentVals=rows.map(r=>r.val);
+
+function render(){
+  const skipCnt=Object.values(skipped).filter(Boolean).length;
+  const saveCnt=Object.values(saved).filter(Boolean).length;
+  let label='Validation errors ('+rows.length+')';
+  const parts=[];
+  if(saveCnt) parts.push(saveCnt+' saved');
+  if(skipCnt) parts.push(skipCnt+' marked to skip');
+  if(parts.length) label+=' — '+parts.join(', ');
+  document.getElementById('countLabel').textContent=label;
+  document.getElementById('ackBox').style.display=skipCnt?'block':'none';
+  document.getElementById('skipAllChk').checked=rows.every((_,i)=>skipped[i]||saved[i]);
+
+  document.getElementById('tbody').innerHTML=rows.map((r,i)=>{
+    const sk=skipped[i],sv=saved[i],ed=edited[i];
+    let rowClass=sk?'row-skipped':sv?'row-saved':'';
+    const skipDisabled=sv&&!sk;
+
+    // skip cell
+    const skipCell=
+      '<input type="checkbox"'+(sk?' checked':'')+(skipDisabled?' disabled title="Field saved — skip not available"':'')+' onchange="toggle('+i+',this.checked)" aria-label="Skip '+r.field+'">'+
+      (sk?'<span class="skip-badge">Skipped</span>':'')+
+      (sv&&!sk?'<span class="saved-badge-sm">Saved</span>':'');
+
+    // value cell
+    let valCell;
+    if(sk){
+      valCell='<span class="dis-val">'+esc(currentVals[i])+'</span>';
+    }else if(sv){
+      valCell='<span style="color:#155724;font-weight:500">'+esc(currentVals[i])+'</span> <span class="saved-pill">Saved</span> <span class="qualify-pill">Qualifies for export</span>';
+    }else if(r.type==='select'){
+      valCell='<select class="editable-inp" onchange="updateVal('+i+',this.value)" aria-label="'+r.field+'"><option value="">— select —</option><option>CA</option><option>Taxpayer</option><option>NY</option><option>TX</option><option>FL</option></select>'+(ed?'<div class="edit-hint">&#9998; Edited — click Save</div>':'<div class="edit-hint">Select a valid option</div>');
+    }else{
+      valCell='<input type="text" class="editable-inp" value="'+esc(currentVals[i]).replace(/"/g,'&quot;')+'" oninput="markEdited('+i+')" onchange="updateVal('+i+',this.value)" aria-label="'+r.field+'">'+(ed?'<div class="edit-hint">&#9998; Edited — click Save</div>':'<div class="edit-hint">Edit then Save</div>');
+    }
+
+    const errCell=sk?'<span style="color:#856404;font-size:11px">Skipped — will not export</span>':sv?'<span class="ok-detail">Saved — will export on retry</span>':'<span class="err-detail">'+esc(r.err)+'</span>';
+
+    return '<tr class="'+rowClass+'">'+
+      '<td class="skip-cell">'+skipCell+'</td>'+
+      '<td>'+esc(r.cat)+'</td>'+
+      '<td>'+esc(r.form)+'</td>'+
+      '<td>'+esc(r.grp)+'</td>'+
+      '<td style="font-weight:500">'+esc(r.field)+'</td>'+
+      '<td>'+valCell+'</td>'+
+      '<td>'+errCell+'</td>'+
+      '<td style="background:#FFF9E6;color:#3B6D11;font-size:11px;font-weight:500">'+esc(r.sample)+'</td>'+
+      '<td style="font-size:10.5px;color:#888">'+esc(r.taxPath)+'</td>'+
+      '<td style="font-size:10.5px;color:#888">'+esc(r.inputPath)+'</td>'+
+      '</tr>';
+  }).join('');
+}
+
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function updateVal(i,v){currentVals[i]=v;edited[i]=true;}
+function markEdited(i){edited[i]=true;}
+function toggle(i,v){skipped[i]=v;render();}
+function skipAll(v){rows.forEach((_,i)=>{if(!saved[i])skipped[i]=v;});render();}
+function saveEdits(){
+  let cnt=0;
+  rows.forEach((_,i)=>{if(edited[i]&&!skipped[i]){saved[i]=true;edited[i]=false;cnt++;}});
+  const bar=document.getElementById('statusBar');
+  if(cnt>0){bar.style.display='block';bar.textContent=cnt+' field'+(cnt>1?'s':'')+' saved — will export on retry.';}
+  render();
+}
+render();
+</script>
+</body>
+</html>
